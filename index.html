@@ -6,75 +6,399 @@
   <title>Sticky To-Do Mobile</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-    body { background: #f0f6ff; padding: 16px; color: #0f172a; }
-    h2 { margin-bottom: 12px; color: #1d4ed8; font-size: 18px; }
-    
-    .add-box { display: flex; gap: 8px; margin-bottom: 16px; }
-    .add-box input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #bfdbfe; outline: none; }
-    .add-box button { padding: 10px 16px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: bold; }
-    
-    .todo-list { display: flex; flex-direction: column; gap: 8px; }
-    .todo-item { background: white; padding: 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; }
-    .todo-item.on-progress { border-left: 4px solid #f59e0b; }
-    .todo-item.complete { border-left: 4px solid #10b981; }
-    .todo-item.hold { border-left: 4px solid #64748b; }
-    
-    .task-title { font-weight: 600; font-size: 14px; }
-    .btn-del { background: none; border: none; font-size: 16px; cursor: pointer; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%);
+      border-radius: 14px;
+      padding: 10px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 24px rgba(30, 64, 175, 0.2);
+      color: #0f172a;
+      overflow: hidden;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      font-weight: 700;
+      color: #1d4ed8;
+      border-bottom: 2px solid rgba(59, 130, 246, 0.35);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .deadline-filter {
+      border: 1px solid rgba(59, 130, 246, 0.45);
+      background: rgba(255, 255, 255, 0.85);
+      color: #0f172a;
+      border-radius: 6px;
+      padding: 3px 6px;
+      font-size: 11px;
+    }
+
+    .table-container {
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 6px;
+    }
+
+    table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: separate;
+      border-spacing: 0 6px;
+    }
+
+    th, td {
+      padding: 2px 4px;
+      text-align: left;
+      font-size: 11px;
+      vertical-align: middle;
+      overflow: hidden;
+    }
+
+    th {
+      color: #1e3a8a;
+      font-weight: 700;
+      border-bottom: 1px solid rgba(37, 99, 235, 0.25);
+      padding-bottom: 4px;
+    }
+
+    .task-column { width: 38%; }
+    .deadline-cell { width: 28%; }
+    .status-cell { width: 26%; }
+    .delete-cell { width: 8%; text-align: center; }
+
+    .task-bubble,
+    .status-badge,
+    .date-chip {
+      display: flex;
+      align-items: center;
+      min-height: 30px;
+      border-radius: 8px;
+      padding: 4px 6px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+    }
+
+    .task-bubble {
+      background: #ffffff;
+      min-width: 0;
+    }
+
+    .task-bubble input[type="text"] {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 11px;
+      color: inherit;
+    }
+
+    .date-chip {
+      justify-content: space-between;
+      gap: 4px;
+      width: 100%;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .date-text {
+      flex: 1;
+      text-align: left;
+      font-weight: 600;
+      font-size: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: inherit;
+    }
+
+    .date-icon {
+      font-size: 11px;
+      opacity: 0.85;
+      pointer-events: none;
+    }
+
+    .date-picker {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    /* Warna Berdasarkan Status (Kuning Pastel untuk On Progress) */
+    .task-bubble.on-progress,
+    .status-badge.on-progress,
+    .date-chip.on-progress {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .task-bubble.complete,
+    .status-badge.complete,
+    .date-chip.complete {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .task-bubble.hold,
+    .status-badge.hold,
+    .date-chip.hold {
+      background: #ffffff;
+      color: #374151;
+    }
+
+    .status-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      padding: 0 14px 0 0;
+      color: inherit;
+      width: 100%;
+      font-size: 10px;
+      background-image:
+        linear-gradient(45deg, transparent 50%, currentColor 50%),
+        linear-gradient(135deg, currentColor 50%, transparent 50%);
+      background-position:
+        calc(100% - 10px) calc(50% - 2px),
+        calc(100% - 5px) calc(50% - 2px);
+      background-size: 4px 4px, 4px 4px;
+      background-repeat: no-repeat;
+    }
+
+    .status-select option {
+      background-color: #ffffff;
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    .btn-delete {
+      background: rgba(255,255,255,0.5);
+      border: 1px solid rgba(148,163,184,0.3);
+      border-radius: 6px;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .add-bar {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      align-items: center;
+    }
+
+    .add-bar input[type="text"] {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(59, 130, 246, 0.45);
+      color: #0f172a;
+      font-size: 11px;
+    }
+
+    .btn-add {
+      background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      color: white;
+      min-width: 34px;
+    }
   </style>
 </head>
 <body>
 
-  <h2>📌 To-Do List</h2>
-
-  <div class="add-box">
-    <input type="text" id="mobile-task" placeholder="Tambah tugas baru...">
-    <button onclick="addFromMobile()">+</button>
+  <div class="header">
+    <span>📌 To-Do</span>
+    <div class="header-controls">
+      <select id="deadline-filter" class="deadline-filter">
+        <option value="all">All tasks</option>
+        <option value="closest">Closest deadline</option>
+      </select>
+    </div>
   </div>
 
-  <div class="todo-list" id="list"></div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th class="task-column">To do</th>
+          <th class="deadline-cell">Deadline</th>
+          <th class="status-cell">Status</th>
+          <th class="delete-cell"></th>
+        </tr>
+      </thead>
+      <tbody id="todo-list"></tbody>
+    </table>
+  </div>
+
+  <div class="add-bar">
+    <input type="text" id="task-input" placeholder="Add a new task...">
+    <button class="btn-add" id="add-btn" type="button">+</button>
+  </div>
 
   <script>
     const SUPABASE_URL = 'https://jofrdxyilplrtvujvcnr.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_gkdt70GR5tHmXFvKi54Hdg_eyxyWq4Y';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    async function fetchTodos() {
-      const { data } = await supabaseClient.from('todos').select('*').order('id', { ascending: false });
-      const listEl = document.getElementById('list');
-      listEl.innerHTML = '';
-      (data || []).forEach(item => {
-        listEl.innerHTML += `
-          <div class="todo-item ${item.status}">
-            <span class="task-title">${item.task}</span>
-            <button class="btn-del" onclick="deleteItem(${item.id})">🗑️</button>
-          </div>
-        `;
+    function escapeHtml(value = '') {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function getStatusClass(status) {
+      if (status === 'complete') return 'complete';
+      if (status === 'hold') return 'hold';
+      return 'on-progress';
+    }
+
+    function formatDeadline(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      if (Number.isNaN(date.getTime())) return '';
+
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date);
+      return `${day} ${month}`;
+    }
+
+    function sortTodos(todos) {
+      const filterValue = document.getElementById('deadline-filter')?.value || 'all';
+      if (filterValue !== 'closest') return [...todos];
+
+      return [...todos].sort((a, b) => {
+        const aDate = a.deadline ? new Date(a.deadline).getTime() : Number.MAX_SAFE_INTEGER;
+        const bDate = b.deadline ? new Date(b.deadline).getTime() : Number.MAX_SAFE_INTEGER;
+        return aDate - bDate;
       });
     }
 
-    async function addFromMobile() {
-      const input = document.getElementById('mobile-task');
-      if (!input.value.trim()) return;
-      await supabaseClient.from('todos').insert([{ task: input.value.trim(), status: 'on progress' }]);
+    async function loadTodos() {
+      const { data, error } = await supabaseClient.from('todos').select('*').order('id', { ascending: false });
+      if (error) console.error(error);
+      
+      const todos = sortTodos(data || []);
+      const tbody = document.getElementById('todo-list');
+      tbody.innerHTML = '';
+
+      todos.forEach(todo => {
+        const statusClass = getStatusClass(todo.status);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <div class="task-bubble ${statusClass}">
+              <input type="text" value="${escapeHtml(todo.task)}" onchange="updateTask(${todo.id}, this.value)">
+            </div>
+          </td>
+          <td class="deadline-cell">
+            <div class="date-chip ${statusClass}" onclick="openDatePicker(this)">
+              <span class="date-text">${formatDeadline(todo.deadline) || 'Set date'}</span>
+              <span class="date-icon">📅</span>
+              <input type="date" class="date-picker" value="${todo.deadline || ''}" onchange="updateDeadline(${todo.id}, this.value)">
+            </div>
+          </td>
+          <td class="status-cell">
+            <div class="status-badge ${statusClass}">
+              <select class="status-select" onchange="updateStatus(${todo.id}, this.value)">
+                <option value="on progress" ${todo.status === 'on progress' ? 'selected' : ''}>on progress</option>
+                <option value="complete" ${todo.status === 'complete' ? 'selected' : ''}>completed</option>
+                <option value="hold" ${todo.status === 'hold' ? 'selected' : ''}>on hold</option>
+              </select>
+            </div>
+          </td>
+          <td class="delete-cell">
+            <button class="btn-delete" onclick="deleteTodo(${todo.id})">🗑️</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openDatePicker(chipElement) {
+      const input = chipElement.querySelector('.date-picker');
+      if (input && typeof input.showPicker === 'function') {
+        input.showPicker();
+      }
+    }
+
+    async function addTodo() {
+      const input = document.getElementById('task-input');
+      const task = input.value.trim();
+      if (!task) return;
+
+      await supabaseClient.from('todos').insert([{ task, status: 'on progress' }]);
       input.value = '';
-      fetchTodos();
+      loadTodos();
     }
 
-    async function deleteItem(id) {
+    async function updateStatus(id, status) {
+      await supabaseClient.from('todos').update({ status }).eq('id', id);
+      loadTodos();
+    }
+
+    async function updateTask(id, task) {
+      await supabaseClient.from('todos').update({ task }).eq('id', id);
+    }
+
+    async function updateDeadline(id, deadline) {
+      await supabaseClient.from('todos').update({ deadline: deadline || null }).eq('id', id);
+      loadTodos();
+    }
+
+    async function deleteTodo(id) {
       await supabaseClient.from('todos').delete().eq('id', id);
-      fetchTodos();
+      loadTodos();
     }
 
-    // Mendengarkan perubahan Realtime
+    document.getElementById('add-btn').addEventListener('click', addTodo);
+    document.getElementById('task-input').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        addTodo();
+      }
+    });
+    document.getElementById('deadline-filter').addEventListener('change', loadTodos);
+
+    // Realtime Sync dari Supabase
     supabaseClient
-      .channel('todos-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, () => fetchTodos())
+      .channel('todos-realtime-mobile')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, () => loadTodos())
       .subscribe();
 
-    fetchTodos();
+    loadTodos();
   </script>
 </body>
 </html>
