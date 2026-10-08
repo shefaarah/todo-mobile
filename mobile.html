@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sticky To-Do Mobile</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background: #f0f6ff; padding: 16px; color: #0f172a; }
+    h2 { margin-bottom: 12px; color: #1d4ed8; font-size: 18px; }
+    
+    .add-box { display: flex; gap: 8px; margin-bottom: 16px; }
+    .add-box input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #bfdbfe; outline: none; }
+    .add-box button { padding: 10px 16px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: bold; }
+    
+    .todo-list { display: flex; flex-direction: column; gap: 8px; }
+    .todo-item { background: white; padding: 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; }
+    .todo-item.on-progress { border-left: 4px solid #f59e0b; }
+    .todo-item.complete { border-left: 4px solid #10b981; }
+    .todo-item.hold { border-left: 4px solid #64748b; }
+    
+    .task-title { font-weight: 600; font-size: 14px; }
+    .btn-del { background: none; border: none; font-size: 16px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <h2>📌 Quick Add To-Do (HP)</h2>
+
+  <div class="add-box">
+    <input type="text" id="mobile-task" placeholder="Tambah tugas baru...">
+    <button onclick="addFromMobile()">+</button>
+  </div>
+
+  <div class="todo-list" id="list"></div>
+
+  <script>
+    const SUPABASE_URL = 'https://jofrdxyilplrtvujvcnr.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_gkdt70GR5tHmXFvKi54Hdg_eyxyWq4Y';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function fetchTodos() {
+      const { data } = await supabaseClient.from('todos').select('*').order('id', { ascending: false });
+      const listEl = document.getElementById('list');
+      listEl.innerHTML = '';
+      (data || []).forEach(item => {
+        listEl.innerHTML += `
+          <div class="todo-item ${item.status}">
+            <span class="task-title">${item.task}</span>
+            <button class="btn-del" onclick="deleteItem(${item.id})">🗑️</button>
+          </div>
+        `;
+      });
+    }
+
+    async function addFromMobile() {
+      const input = document.getElementById('mobile-task');
+      if (!input.value.trim()) return;
+      await supabaseClient.from('todos').insert([{ task: input.value.trim(), status: 'on progress' }]);
+      input.value = '';
+      fetchTodos();
+    }
+
+    async function deleteItem(id) {
+      await supabaseClient.from('todos').delete().eq('id', id);
+      fetchTodos();
+    }
+
+    // Mendengarkan perubahan Realtime
+    supabaseClient
+      .channel('todos-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, () => fetchTodos())
+      .subscribe();
+
+    fetchTodos();
+  </script>
+</body>
+</html>
