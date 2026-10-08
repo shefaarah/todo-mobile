@@ -13,12 +13,10 @@
     body {
       font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%);
-      border-radius: 14px;
-      padding: 10px;
-      height: 100vh;
+      padding: 12px;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 10px 24px rgba(30, 64, 175, 0.2);
       color: #0f172a;
       overflow: hidden;
     }
@@ -44,14 +42,47 @@
       background: rgba(255, 255, 255, 0.85);
       color: #0f172a;
       border-radius: 6px;
-      padding: 3px 6px;
+      padding: 4px 6px;
       font-size: 11px;
+    }
+
+    /* Input Add Task Ditaruh di Atas Agar Kelihatan Jelas & Nyaman di HP */
+    .add-bar {
+      display: flex;
+      gap: 6px;
+      margin: 10px 0 6px 0;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .add-bar input[type="text"] {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(59, 130, 246, 0.45);
+      color: #0f172a;
+      font-size: 12px;
+      outline: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .btn-add {
+      background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      color: white;
+      min-width: 36px;
+      font-size: 14px;
     }
 
     .table-container {
       flex: 1;
       overflow-y: auto;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     table {
@@ -86,7 +117,7 @@
     .date-chip {
       display: flex;
       align-items: center;
-      min-height: 30px;
+      min-height: 32px;
       border-radius: 8px;
       padding: 4px 6px;
       border: 1px solid rgba(148, 163, 184, 0.25);
@@ -144,7 +175,7 @@
       cursor: pointer;
     }
 
-    /* Warna Berdasarkan Status (Kuning Pastel untuk On Progress) */
+    /* Variasi Warna Status */
     .task-bubble.on-progress,
     .status-badge.on-progress,
     .date-chip.on-progress {
@@ -205,34 +236,6 @@
       align-items: center;
       justify-content: center;
     }
-
-    .add-bar {
-      display: flex;
-      gap: 6px;
-      margin-top: 8px;
-      align-items: center;
-    }
-
-    .add-bar input[type="text"] {
-      flex: 1;
-      background: rgba(255, 255, 255, 0.85);
-      padding: 6px 8px;
-      border-radius: 8px;
-      border: 1px solid rgba(59, 130, 246, 0.45);
-      color: #0f172a;
-      font-size: 11px;
-    }
-
-    .btn-add {
-      background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
-      border: none;
-      padding: 6px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 700;
-      color: white;
-      min-width: 34px;
-    }
   </style>
 </head>
 <body>
@@ -247,6 +250,12 @@
     </div>
   </div>
 
+  <!-- Bar Input Add Task Diletakkan di Atas -->
+  <div class="add-bar">
+    <input type="text" id="task-input" placeholder="Add a new task...">
+    <button class="btn-add" id="add-btn" type="button">+</button>
+  </div>
+
   <div class="table-container">
     <table>
       <thead>
@@ -259,11 +268,6 @@
       </thead>
       <tbody id="todo-list"></tbody>
     </table>
-  </div>
-
-  <div class="add-bar">
-    <input type="text" id="task-input" placeholder="Add a new task...">
-    <button class="btn-add" id="add-btn" type="button">+</button>
   </div>
 
   <script>
@@ -392,7 +396,6 @@
     });
     document.getElementById('deadline-filter').addEventListener('change', loadTodos);
 
-    // Realtime Sync dari Supabase
     supabaseClient
       .channel('todos-realtime-mobile')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, () => loadTodos())
